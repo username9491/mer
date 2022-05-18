@@ -1,0 +1,212 @@
+#include "SeznamMest.h"
+#include "DB.h"
+#include <stdio.h>
+#include <stdlib.h>
+
+#define BUFFER_SIZE 2048
+
+int running = 1;
+
+tDatabaze* db;
+tSeznamMest* seznam;
+
+char input[BUFFER_SIZE];
+
+void showMenu() {
+	printf("1\t-\tVypis vsechna mesta\n");
+	printf("2\t-\tPridej mesto\n");
+	printf("3\t-\tPridej mesto na index\n");
+	printf("4\t-\tOdeber mesto\n");
+	printf("5\t-\tZrus seznam\n");
+	printf("6\t-\tVypis mesta\n");
+	printf("7\t-\tDelka cesty\n");
+	printf("8\t-\tDilci vzdalenosti\n");
+	printf("9\t-\tKonec\n");
+}
+
+void showPrompt() {
+	printf("Zadej prikaz: ");
+}
+
+void printPlaces() {
+	printf("Seznam mest:\n");
+	VypisSeznam(db->seznam);
+}
+
+void addPlace() {
+	printf("Zadej nazev mesta: ");
+	fgets(input, BUFFER_SIZE, stdin);
+	int index = DejIndexMesta(db, input);
+	if (index == -1) {
+		printf("Mesto nebylo nalezeno v databazi\n");
+		return;
+	}
+
+	if (seznam == NULL) {
+		seznam = VytvorMesto(input);
+	}
+	else {
+		PridejNaKonec(seznam, VytvorMesto(input));
+	}
+}
+
+void addPlaceOnIndex() {
+	printf("Zadej index: ");
+	fgets(input, BUFFER_SIZE, stdin);
+	int index = atoi(input);
+	if (index < 0) {
+		printf("Nespravny index\n");
+		return;
+	}
+
+	printf("Zadej nazev mesta: ");
+	fgets(input, BUFFER_SIZE, stdin);
+	int indexMesta = DejIndexMesta(db, input);
+	if (indexMesta == -1) {
+		printf("Mesto nebylo nalezeno v databazi\n");
+		return;
+	}
+
+	if (seznam == NULL) {
+		seznam = VytvorMesto(input);
+	}
+	else {
+		seznam = PridejNaIndex(seznam, index, VytvorMesto(input));
+	}
+}
+
+void deletePlace() {
+	if (seznam == NULL) {
+		return;
+	}
+	printf("Zadej index: ");
+	fgets(input, BUFFER_SIZE, stdin);
+	int index = atoi(input);
+	if (index < 0) {
+		printf("Nespravny index\n");
+		return;
+	}
+	seznam = OdeberPrvek(seznam, index);
+}
+
+void purgeList() {
+	ZrusSeznam(seznam);
+	seznam = NULL;
+}
+
+void printPlacesInList() {
+	if (seznam == NULL) {
+		printf("Seznam je prazdny\n");
+		return;
+	}
+	printf("Seznam mest v seznamu:\n");
+	VypisSeznam(seznam);
+}
+
+void calculateDistance() {
+	if (seznam == NULL) {
+		printf("Seznam je prazdny\n");
+		return;
+	}
+	if (seznam->dalsi == NULL) {
+		printf("Seznam obsahuje pouze jedno mesto");
+		return;
+	}
+	double result = 0;
+	tSeznamMest* previousPlace = seznam;
+	tSeznamMest* nextPlace = seznam->dalsi;
+	while (nextPlace != NULL) {
+		result += DejVzdalenostMeziMesty(db, previousPlace->mesto, nextPlace->mesto);
+		previousPlace = nextPlace;
+		nextPlace = nextPlace->dalsi;
+	}
+
+	printf("Celkova vzdalenost : %.2f\n", result);
+}
+
+void calculateSubDistances() {
+	if (seznam == NULL) {
+		printf("Seznam je prazdny\n");
+		return;
+	}
+	if (seznam->dalsi == NULL) {
+		printf("Seznam obsahuje pouze jedno mesto");
+		return;
+	}
+	double result = 0;
+	tSeznamMest* previousPlace = seznam;
+	tSeznamMest* nextPlace = seznam->dalsi;
+	printf("0\t-\t%s", previousPlace->mesto);
+	while (nextPlace != NULL) {
+		result += DejVzdalenostMeziMesty(db, previousPlace->mesto, nextPlace->mesto);
+		printf("%.2f\t-\t%s", result, nextPlace->mesto);
+		previousPlace = nextPlace;
+		nextPlace = nextPlace->dalsi;
+	}
+	printf("\n");
+}
+
+void dispatch(int option, int* running) {
+	switch (option) {
+
+	case 1:
+		printPlaces();
+		break;
+
+	case 2:
+		addPlace();
+		break;
+
+	case 3:
+		addPlaceOnIndex();
+		break;
+
+	case 4:
+		deletePlace();
+		break;
+
+	case 5:
+		purgeList();
+		break;
+
+	case 6:
+		printPlacesInList();
+		break;
+
+	case 7:
+		calculateDistance();
+		break;
+
+	case 8:
+		calculateSubDistances();
+		break;
+
+	case 9:
+		*running = 0;
+		break;
+
+	default:
+		printf("Nespravny prikaz\n");
+	}
+}
+
+int main() {
+
+
+
+	db = NactiDatabazi("mesta.txt");
+	seznam = NULL;
+
+	while (running) {
+		showMenu();
+		showPrompt();
+		fgets(input, BUFFER_SIZE, stdin);
+		int option = atoi(input);
+		dispatch(option, &running);
+	}
+
+	ZrusDatabazi(db);
+	if (seznam != NULL) {
+		ZrusSeznam(seznam);
+	}
+}
