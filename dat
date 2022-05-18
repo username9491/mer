@@ -1,0 +1,153 @@
+#ifndef DB
+#define DB
+
+#include "SeznamMest.h"
+
+typedef struct {
+	int pocetMest;
+	tSeznamMest* seznam;
+	double** vzdalenosti;
+} tDatabaze;
+
+tDatabaze* NactiDatabazi(char* soubor);
+
+void ZrusDatabazi(tDatabaze* db);
+
+int DejIndexMesta(tDatabaze* db, char* mesto);
+
+double DejVzdalenostMeziMesty(tDatabaze* db, char* mesto1, char* mesto2);
+
+double SpocitejDelku(tDatabaze* db, tSeznamMest* seznam);
+
+void VypisVzdalenostiOdPocatku(tDatabaze* db, tSeznamMest* seznam);
+
+#endif
+
+-------------------------------------------------------------------------
+
+#include "DB.h"
+#include "SeznamMest.h"
+
+#include <stdlib.h>
+#include <stddef.h>
+#include <stdio.h>
+#include <string.h>
+
+#define VELIKOST_VSTUPNIHO_BUFFERU 2048
+
+tDatabaze* NactiDatabazi(char* soubor) {
+	FILE* file;
+	char currentLine[VELIKOST_VSTUPNIHO_BUFFERU];
+	tSeznamMest* lastSaved = NULL;
+	tSeznamMest* firstPlace = NULL;
+	int numOfPlaces = 0;
+
+	file = fopen("mesta.txt", "r");
+	if (file == NULL) {
+		printf("Error while reading file\n");
+		return NULL;
+	}
+	fgets(currentLine, VELIKOST_VSTUPNIHO_BUFFERU, file);
+	while (currentLine[0] != '-') {
+		tSeznamMest* newPlace = VytvorMesto(currentLine);
+		numOfPlaces++;
+		if (lastSaved != NULL) {
+			PridejNaKonec(lastSaved, newPlace);
+		}
+		if (firstPlace == NULL) {
+			firstPlace = newPlace;
+		}
+		lastSaved = newPlace;
+		fgets(currentLine, VELIKOST_VSTUPNIHO_BUFFERU, file);
+	}
+
+	tDatabaze* novaDB = (tDatabaze*)malloc(sizeof(tDatabaze));
+	novaDB->seznam = firstPlace;
+	novaDB->pocetMest = numOfPlaces;
+	novaDB->vzdalenosti = (double**)malloc(numOfPlaces * sizeof(double*));
+	for (int i = 0; i < numOfPlaces; i++)
+		novaDB->vzdalenosti[i] = (double*)malloc(numOfPlaces * sizeof(double));
+
+	int linesRead = 0;
+	int valueOnLineIndex = 0;
+
+	while (fgets(currentLine, VELIKOST_VSTUPNIHO_BUFFERU, file) != NULL) {
+
+		char* token = strtok(currentLine, " \t");
+
+		valueOnLineIndex = 0;
+
+		while (token != NULL) {
+			double value = -1;
+			sscanf(token, "%lf", &value);
+			novaDB->vzdalenosti[linesRead][valueOnLineIndex++] = value;
+			token = strtok(NULL, " \t");
+		}
+
+		linesRead++;
+	}
+
+	fclose(file);
+	return novaDB;
+}
+
+void ZrusDatabazi(tDatabaze* db) {
+	for (int i = 0; i < db->pocetMest; i++) {
+		free(db->vzdalenosti[i]);
+	}
+	free(db->vzdalenosti);
+	ZrusSeznam(db->seznam);
+}
+
+int DejIndexMesta(tDatabaze* db, char* mesto) {
+	int index = 0;
+	tSeznamMest* seznam = db->seznam;
+
+	while (seznam != NULL) {
+		if (strcmp(seznam->mesto, mesto) == 0) {
+			return index;
+		}
+		seznam = seznam->dalsi;
+		index++;
+	}
+
+	return -1;
+}
+
+double DejVzdalenostMeziMesty(tDatabaze* db, char* mesto1, char* mesto2) {
+	int placeAIndex = DejIndexMesta(db, mesto1);
+	int placeBIndex = DejIndexMesta(db, mesto2);
+	if (placeAIndex == -1 || placeBIndex == -1) {
+		return -1;
+	}
+
+	return db->vzdalenosti[placeAIndex][placeBIndex];
+
+}
+
+double SpocitejDelku(tDatabaze* db, tSeznamMest* seznam) {
+	double delka = 0;
+	tSeznamMest* placeFrom = seznam;
+	tSeznamMest* placeTo = seznam->dalsi;
+	while (placeTo != NULL) {
+		double partDistance = DejVzdalenostMeziMesty(db, placeFrom->mesto, placeTo->mesto);
+		delka += partDistance;
+		placeFrom = placeTo;
+		placeTo = placeTo->dalsi;
+	}
+
+	return delka;
+}
+
+void VypisVzdalenostiOdPocatku(tDatabaze* db, tSeznamMest* seznam) {
+	double delka = 0;
+	tSeznamMest* placeFrom = seznam;
+	tSeznamMest* placeTo = seznam->dalsi;
+	printf("%.2f\t%s", delka, placeFrom->mesto);
+	while (placeTo != NULL) {
+		double partDistance = DejVzdalenostMeziMesty(db, placeFrom->mesto, placeTo->mesto);
+		delka += partDistance;
+		printf("%.2f\t%s", delka, placeTo->mesto);
+		placeTo = placeTo->dalsi;
+	}
+}
