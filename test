@@ -62,8 +62,8 @@ tSeznamOsob* NactiOsoby(char* soubor) {
 		return NULL;
 	}
 
-	fgets(currentLine, VELIKOST_VSTUPNIHO_BUFFERU, file); //Прочитал буффер
-	int pocetOsob = atoi(currentLine);	//Присвоили новой переменной
+	fgets(currentLine, VELIKOST_VSTUPNIHO_BUFFERU, file); 
+	int pocetOsob = atoi(currentLine);	
 	
 	
 
