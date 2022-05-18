@@ -1,0 +1,108 @@
+#ifndef SEZNAM_MEST
+#define SEZNAM_MEST
+
+#define DELKA_MESTA 60
+
+typedef struct SeznamMest {
+	char mesto[DELKA_MESTA];
+	struct SeznamMest* dalsi;
+} tSeznamMest;
+
+tSeznamMest* VytvorMesto(char* mesto);
+
+tSeznamMest* PridejNaKonec(tSeznamMest* seznam, tSeznamMest* novy);
+
+tSeznamMest* PridejNaIndex(tSeznamMest* seznam, int index, tSeznamMest* novy);
+
+tSeznamMest* OdeberPrvek(tSeznamMest* seznam, int index);
+
+void VypisSeznam(tSeznamMest* seznam);
+
+void ZrusSeznam(tSeznamMest* seznam);
+
+#endif          
+------------------------------------------------------------
+#include "SeznamMest.h"
+#include <stdlib.h>
+#include <string.h>
+#include <stdio.h>
+
+tSeznamMest* VytvorMesto(char* mesto) {
+	tSeznamMest* noveMesto = (tSeznamMest*)malloc(sizeof(tSeznamMest));
+	strcpy(noveMesto->mesto, mesto);
+	noveMesto->dalsi = NULL;
+	return noveMesto;
+}
+
+tSeznamMest* PridejNaKonec(tSeznamMest* seznam, tSeznamMest* novy) {
+	tSeznamMest* lastElement = seznam;
+	while (lastElement->dalsi != NULL) {
+		lastElement = lastElement->dalsi;
+	}
+	lastElement->dalsi = novy;
+	return seznam;
+}
+
+tSeznamMest* PridejNaIndex(tSeznamMest* seznam, int index, tSeznamMest* novy) {
+	if (index == 0) {
+		novy->dalsi = seznam;
+		return novy;
+	}
+	tSeznamMest* previousElement = seznam;
+	tSeznamMest* currentElement = seznam->dalsi;
+	if (currentElement == NULL) {
+		previousElement->dalsi = novy;
+		return seznam;
+	}
+	for (int i = 0; i < index - 1; i++) {
+		previousElement = currentElement;
+		currentElement = currentElement->dalsi;
+		if (currentElement == NULL) {
+			break;
+		}
+	}
+	novy->dalsi = currentElement;
+	previousElement->dalsi = novy;
+	return seznam;
+}
+
+tSeznamMest* OdeberPrvek(tSeznamMest* seznam, int index) {
+	if (index == 0) {
+		tSeznamMest* previous = seznam;
+		seznam = seznam->dalsi;
+		free(previous);
+		return seznam;
+	}
+	tSeznamMest* previousElement = seznam;
+	tSeznamMest* currentElement = seznam->dalsi;
+	int position = 0;
+	while (position < index - 1) {
+		previousElement = currentElement;
+		currentElement = currentElement->dalsi;
+		if (currentElement == NULL) {
+			return seznam;
+		}
+		position++;
+	}
+
+	previousElement->dalsi = currentElement->dalsi;
+	return seznam;
+
+}
+
+void VypisSeznam(tSeznamMest* seznam) {
+	tSeznamMest* currentElement = seznam;
+	while (currentElement != NULL) {
+		printf("%s", currentElement->mesto);
+		currentElement = currentElement->dalsi;
+	}
+}
+
+void ZrusSeznam(tSeznamMest* seznam) {
+	if (seznam->dalsi == NULL) {
+		free(seznam);
+	}
+	else {
+		ZrusSeznam(seznam->dalsi);
+	}
+}
