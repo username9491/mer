@@ -1,0 +1,174 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#define VELIKOST_VSTUPNIHO_BUFFERU 20
+
+
+
+typedef struct {
+	char jmeno[20];
+	int vyska;
+	double hmotnost;
+} Osoba;
+
+typedef struct tSeznamOsob { //tSeznamOsob dolzno byt Osoba
+
+	Osoba osoba;
+	struct tSeznamOsob* dalsi;
+
+} tSeznamOsob;
+
+
+
+tSeznamOsob* VytvorOsobu(char* jmeno, int vyska, double hmotnost) {
+	tSeznamOsob* novaOsoba = (tSeznamOsob*)malloc(sizeof(tSeznamOsob));
+	strcpy(novaOsoba->osoba.jmeno, jmeno);
+	novaOsoba->osoba.vyska = vyska;
+	novaOsoba->osoba.hmotnost = hmotnost;
+
+	novaOsoba->dalsi = NULL;
+	return novaOsoba;
+}
+
+tSeznamOsob* PridejNaKonec(tSeznamOsob* seznam, tSeznamOsob* novy) {
+	tSeznamOsob* lastElement = seznam;
+	while (lastElement->dalsi != NULL) {
+		lastElement = lastElement->dalsi;
+	}
+	lastElement->dalsi = novy;
+	return seznam;
+}
+
+void ZrusSeznam(tSeznamOsob* seznam) {
+	if (seznam->dalsi == NULL) {
+		free(seznam);
+	}
+	else {
+		ZrusSeznam(seznam->dalsi);
+	}
+}
+
+
+tSeznamOsob* NactiOsoby(char* soubor) {
+
+	FILE* file;
+	char currentLine[VELIKOST_VSTUPNIHO_BUFFERU];
+	tSeznamOsob* lastSaved = NULL;
+	tSeznamOsob* firstSaved = NULL;
+
+	file = fopen(soubor, "r");
+	if (file == NULL) {
+		printf("Error while reading file\n");
+		return NULL;
+	}
+
+	fgets(currentLine, VELIKOST_VSTUPNIHO_BUFFERU, file); //Прочитал буффер
+	int pocetOsob = atoi(currentLine);	//Присвоили новой переменной
+	
+	
+
+
+	for (int i = 0; i < pocetOsob; i++) {
+		char jmeno[20];
+		int vyska;
+		double hmotnost;
+
+		fgets(currentLine, VELIKOST_VSTUPNIHO_BUFFERU, file);
+		strcpy(jmeno, currentLine);
+		fgets(currentLine, VELIKOST_VSTUPNIHO_BUFFERU, file);
+		vyska = atoi(currentLine);
+		fgets(currentLine, VELIKOST_VSTUPNIHO_BUFFERU, file);
+		hmotnost = atof(currentLine);
+
+		tSeznamOsob* osoba = VytvorOsobu(jmeno, vyska, hmotnost);
+
+		if (firstSaved == NULL) {
+			firstSaved = osoba;
+		}
+
+		else
+		{
+			PridejNaKonec(firstSaved, osoba);
+		}
+	}
+
+	fclose(file);
+	return firstSaved;
+}
+
+
+void vypisOsoby(tSeznamOsob* seznam) {
+	tSeznamOsob* lastElement = seznam;
+	while (lastElement != NULL) {
+		printf("%s", lastElement->osoba.jmeno);
+		printf("%d\n", lastElement->osoba.vyska);
+		printf("%f\n", lastElement->osoba.hmotnost);
+
+		lastElement = lastElement->dalsi;
+	}
+}
+
+
+double spocitejBMI(Osoba osoba) {
+	
+
+
+	return osoba.hmotnost / (((double)osoba.vyska/100) * ((double)osoba.vyska/100));
+}
+
+double spocitejPrumerneBMI(tSeznamOsob* osoby) {
+	double sum = 0;
+	int pocetOsob = 0;
+
+	tSeznamOsob* lastElement = osoby;
+	while (lastElement != NULL) {
+
+		sum += spocitejBMI(lastElement->osoba);
+
+		lastElement = lastElement->dalsi;
+		pocetOsob++;
+	}
+	return sum / pocetOsob;
+}
+
+Osoba najdiOsobuNejmensiBMI(tSeznamOsob* osoby) {
+	
+	double minValue = INT_MAX;
+	Osoba* minOsoba = NULL;
+
+	tSeznamOsob* lastElement = osoby;
+	while (lastElement != NULL) {
+
+		double bmi = spocitejBMI(lastElement->osoba);
+		if (bmi < minValue) {
+			minValue = bmi;
+			minOsoba = lastElement;
+		}
+
+
+		lastElement = lastElement->dalsi;
+	
+	}
+	return *minOsoba;
+}
+
+int main() {
+
+
+
+	tSeznamOsob* osoba = NactiOsoby("osoby.txt");
+	vypisOsoby(osoba);
+
+
+	double prumBMI = spocitejPrumerneBMI(osoba);
+	printf("Prumerne BMI je = %.2f\n", prumBMI);
+	
+	Osoba nejmensiBMI = najdiOsobuNejmensiBMI(osoba);
+	printf("Osoba s nejmensim BMI\n");
+	printf("Jmeno: %s", osoba->osoba.jmeno);
+	printf("Vyska: %d\n", osoba->osoba.vyska);
+	printf("Hmotnost: %.2f\n", osoba->osoba.hmotnost);
+
+
+
+}
