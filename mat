@@ -1,0 +1,75 @@
+#include <stdio.h>
+#include <stdlib.h>
+
+int** nactiMatici(char* filename, int* size) {
+	FILE* file = fopen(filename, "rb");
+
+	if (file == NULL) {
+		printf("Error while openning file\n");
+		return NULL;
+	}
+
+	int dimension = 0;
+	
+	fread(&dimension, sizeof(int), 1, file);
+	int** matice = (int**)malloc(dimension * sizeof(int*));
+	for (int i = 0; i < dimension; i++) {
+		matice[i] = (int*)malloc(dimension * sizeof(int));
+	}
+
+	int row = 0;
+	int elem = 0;
+
+	int value = 0;
+
+	while (fread(&value, sizeof(int), 1, file) == 1) {
+		matice[row][elem++] = value;
+		if (elem == dimension) {
+			elem = 0;
+			row++;
+		}
+	}
+
+	fclose(file);
+
+	*size = dimension;
+
+	return matice;
+}
+
+void vypis(int** matice, int* size) {
+	for (int i = 0; i < *size; i++) {
+		for (int j = 0; j < *size; j++) {
+			printf("%d\t", matice[i][j]);
+		}
+		printf("\n");
+	}
+}
+
+int soucetNaHlavniDiag(int** matice, int* size) {
+	int sum = 0;
+	for (int i = 0; i < *size; i++) {
+		for (int j = 0; j < *size; j++) {
+			if (i == j) {
+				sum += matice[i][j];
+			}
+		}
+	}
+	return sum;
+}
+
+
+int main() {
+	
+	char* fileName = "data.bin";
+	int size = 0;
+
+	int** matice = nactiMatici(fileName, &size);
+
+	vypis(matice, &size);
+
+	printf("Soucet prvku je %d\n", soucetNaHlavniDiag(matice, &size));
+
+	
+	return 0;
+}
