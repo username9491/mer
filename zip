@@ -1,0 +1,141 @@
+#include <stdio.h>
+#include <string.h>
+#include <stdlib.h>
+#define VELIKOST_VSTUPNIHO_BUFFERU 500
+
+typedef struct tProdukt {
+	int cislo;
+	char typ;
+	char nazev[20];
+	double castka;
+	struct tProdukt* dalsi;
+}tProdukt;
+
+typedef struct {
+	tProdukt* smerP;
+	tProdukt* smerV;
+}tRozvoz;
+
+tProdukt* vytvorProdukt(int cislo, char typ, char* nazev[20], double castka) {
+	tProdukt* novyProdukt = (tProdukt*)malloc(sizeof(tProdukt));
+
+	novyProdukt->cislo = cislo;
+	novyProdukt->typ = typ;
+	strcpy(novyProdukt->nazev, nazev);
+	novyProdukt->castka = castka;
+	novyProdukt->dalsi = NULL;
+
+	return novyProdukt;
+}
+
+tProdukt* pridejNaKonec(tProdukt* seznam, tProdukt* novy) {
+	tProdukt* lastElement = seznam;
+
+	while (lastElement->dalsi != NULL){
+		lastElement = lastElement->dalsi;
+	}
+	lastElement->dalsi = novy;
+
+	return seznam;
+}
+
+void zrusSeznam(tProdukt* seznam) {
+	if (seznam->dalsi == NULL) {
+		free(seznam);
+	}
+	else {
+		zrusSeznam(seznam->dalsi);
+	}
+}
+
+void vypis(tProdukt* smer) {
+	tProdukt* lastElement = smer;
+
+	while (lastElement != NULL) {
+		printf("Cislo: %d\n", lastElement->cislo);
+		printf("Typ: %c\n", lastElement->typ);
+		printf("Nazev: %s\n", lastElement->nazev);
+		printf("Castka: %.2f Kc\n", lastElement->castka);
+		printf("_________\n");
+
+		lastElement = lastElement->dalsi;
+	}
+}
+
+tRozvoz nacti(char* jmSoub) {
+	tRozvoz toReturn;
+	toReturn.smerP = NULL;
+	toReturn.smerV = NULL;
+
+
+
+	FILE* file;
+	char currentLine[VELIKOST_VSTUPNIHO_BUFFERU];
+
+	file = fopen(jmSoub, "r");
+	if (file == NULL) {
+		printf("Error while reading file");
+		return toReturn;
+	}
+
+	fgets(currentLine, VELIKOST_VSTUPNIHO_BUFFERU, file);
+
+	while (fgets(currentLine, VELIKOST_VSTUPNIHO_BUFFERU, file)!=NULL){
+		int cislo;
+		char typ;
+		char nazev[20];
+		double castka;
+
+		char* token = strtok(currentLine, ";");
+
+		cislo = atoi(token);
+		token = strtok(NULL, ";");
+		typ = token[0];
+		token = strtok(NULL, ";");
+		strcpy(nazev, token);
+		token = strtok(NULL, ";");
+		castka = atof(token);
+
+		tProdukt* produkt = vytvorProdukt(cislo, typ, nazev, castka);
+
+		if (produkt->typ == 'V') {
+			if (toReturn.smerV == NULL) {
+				toReturn.smerV = produkt;
+			}
+			else {
+				pridejNaKonec(toReturn.smerV, produkt);
+			}
+		}
+		else if (produkt->typ == 'P') {
+			if (toReturn.smerP == NULL) {
+				toReturn.smerP = produkt;
+			}
+			else {
+				pridejNaKonec(toReturn.smerP, produkt);
+			}
+		}
+
+	}
+
+	fclose(file);
+
+	return toReturn;
+}
+
+
+
+int main() {
+	tRozvoz rozvoz = nacti("produkty.csv");
+	printf("-------------------------\n");
+	printf("Smer V\n");
+	printf("-------------------------\n");
+
+	vypis(rozvoz.smerV);
+	printf("-------------------------\n");
+	printf("Smer P\n");
+	printf("-------------------------\n");
+	vypis(rozvoz.smerP);
+
+
+	return 0;
+}
